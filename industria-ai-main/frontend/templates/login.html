@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}INDUSTRIA AI — Secure Industrial Login{% endblock %}
+
+{% block content %}
+<div class="container py-5 my-auto">
+  <div class="row justify-content-center align-items-center">
+    <div class="col-12 col-md-8 col-lg-5">
+      <div class="card card-industria border-secondary p-4 p-md-5">
+
+        <!-- Branding Header -->
+        <div class="text-center mb-4">
+          <div class="d-inline-flex align-items-center gap-2 mb-2">
+            <span class="brand-badge fs-5 px-3 py-1"><i class="bi bi-cpu-fill"></i> INDUSTRIA</span>
+            <span class="brand-title fs-2">AI</span>
+          </div>
+          <h5 class="fw-bold text-light mb-1">Industrial Knowledge Assistant</h5>
+          <p class="text-muted small">Evidence-grounded maintenance and operation manual intelligence</p>
+        </div>
+
+        <!-- Alert Notification -->
+        <div id="loginAlert" class="alert alert-danger py-2 small d-none" role="alert"></div>
+
+        <!-- Login Form -->
+        <form id="loginForm" onsubmit="handleLogin(event)">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label text-muted small fw-semibold">Username</label>
+            <div class="input-group">
+              <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-person"></i></span>
+              <input type="text" id="usernameInput" class="form-control form-control-industria"
+                placeholder="Enter username" required autofocus>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label text-muted small fw-semibold">Password</label>
+            <div class="input-group">
+              <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-key"></i></span>
+              <input type="password" id="passwordInput" class="form-control form-control-industria"
+                placeholder="Enter password" required>
+            </div>
+          </div>
+
+          <button type="submit" id="loginBtn" class="btn btn-primary-industria w-100 py-2">
+            <i class="bi bi-shield-lock me-1"></i> Sign In to Assistant
+          </button>
+        </form>
+
+        <!-- Quick Demo Role Switcher -->
+        <div class="mt-4 pt-3 border-top border-secondary text-center">
+          <small class="text-muted d-block mb-2"></small>
+          <div class="d-flex justify-content-center gap-2">
+            <button type="button" class="btn btn-sm btn-outline-industria text-info"
+              onclick="fillCreds('engineer', 'Engineer@123456')">
+              <i class="bi bi-tools me-1"></i> Engineer
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-industria text-warning"
+              onclick="fillCreds('admin', 'Admin@123456')">
+              <i class="bi bi-shield-shaded me-1"></i> Admin
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-industria text-purple" style="color: #c084fc;"
+              onclick="fillCreds('supervisor', 'Supervisor@123456')">
+              <i class="bi bi-clipboard-check me-1"></i> Supervisor
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function fillCreds(u, p) {
+    document.getElementById('usernameInput').value = u;
+    document.getElementById('passwordInput').value = p;
+  }
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    const alertBox = document.getElementById('loginAlert');
+    const loginBtn = document.getElementById('loginBtn');
+    alertBox.classList.add('d-none');
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Authenticating...';
+
+    const username = document.getElementById('usernameInput').value.trim();
+    const password = document.getElementById('passwordInput').value;
+
+    try {
+      const resp = await fetch('/api/auth/login/', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrftoken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await resp.json();
+
+      if (resp.ok) {
+        const role = data.user.role;
+        if (role === 'ADMIN') {
+          window.location.href = '/admin-dashboard/';
+        } else if (role === 'SUPERVISOR') {
+          window.location.href = '/supervisor/';
+        } else {
+          window.location.href = '/engineer/';
+        }
+      } else {
+        alertBox.innerText = data.non_field_errors || data.detail || 'Invalid username or password.';
+        alertBox.classList.remove('d-none');
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = '<i class="bi bi-shield-lock me-1"></i> Sign In to Assistant';
+      }
+    } catch (err) {
+      alertBox.innerText = 'Network or server error occurred. Please try again.';
+      alertBox.classList.remove('d-none');
+      loginBtn.disabled = false;
+      loginBtn.innerHTML = '<i class="bi bi-shield-lock me-1"></i> Sign In to Assistant';
+    }
+  }
+</script>
+{% endblock %}

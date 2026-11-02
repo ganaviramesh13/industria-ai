@@ -1,0 +1,549 @@
+{% extends 'base.html' %}
+
+{% block title %}INDUSTRIA AI — Supervisor Audit Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-lg-4 py-4">
+
+  <!-- Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1 d-flex align-items-center gap-2">
+        <i class="bi bi-clipboard-data-fill" style="color: #c084fc;"></i> Supervisor Audit & Compliance Dashboard
+      </h3>
+      <p class="text-muted small mb-0">Cross-engineer query analytics, documentation knowledge gaps, and machine-wise compliance audit.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <a href="/engineer/" class="btn btn-outline-info btn-sm">
+        <i class="bi bi-chat-left-text me-1"></i> Open Assistant
+      </a>
+      <span class="badge bg-secondary px-3 py-2"><i class="bi bi-eye-fill me-1"></i> SUPERVISOR AUDIT MODE</span>
+      <button class="btn btn-outline-industria btn-sm" onclick="loadDashboard()">
+        <i class="bi bi-arrow-clockwise me-1"></i> Refresh Metrics
+      </button>
+    </div>
+  </div>
+
+  <!-- Metric Statistics Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card card-industria p-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <span class="text-muted small text-uppercase">Total Queries</span>
+            <h3 class="fw-bold text-light mb-0 mt-1" id="statTotalQueries">0</h3>
+          </div>
+          <div class="fs-1 text-primary opacity-50"><i class="bi bi-chat-square-dots"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card card-industria p-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <span class="text-muted small text-uppercase">Answered (Grounded)</span>
+            <h3 class="fw-bold text-success mb-0 mt-1" id="statAnsweredQueries">0</h3>
+          </div>
+          <div class="fs-1 text-success opacity-50"><i class="bi bi-shield-check"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card card-industria p-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <span class="text-muted small text-uppercase">Knowledge Gaps</span>
+            <h3 class="fw-bold text-warning mb-0 mt-1" id="statInsufficientQueries">0</h3>
+          </div>
+          <div class="fs-1 text-warning opacity-50"><i class="bi bi-exclamation-triangle"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card card-industria p-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <span class="text-muted small text-uppercase">Grounded Rate</span>
+            <h3 class="fw-bold text-info mb-0 mt-1" id="statRate">0%</h3>
+          </div>
+          <div class="fs-1 text-info opacity-50"><i class="bi bi-graph-up"></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Machine-Wise Distribution Cards -->
+  <div class="row g-3 mb-4" id="machineDistributionGrid">
+    <!-- Rendered by JS -->
+  </div>
+
+  <!-- Filter & Audit Log Section -->
+  <div class="card card-industria mb-4">
+    <div class="card-header card-header-industria d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <!-- Nav Tabs -->
+      <ul class="nav nav-pills gap-1 mb-0" id="auditTabs">
+        <li class="nav-item">
+          <button class="nav-link active py-1 px-3" id="tabAllBtn" onclick="switchTab('all')">
+            <i class="bi bi-list-check me-1"></i> All Queries
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link py-1 px-3" id="tabGapsBtn" onclick="switchTab('gaps')">
+            <i class="bi bi-exclamation-triangle me-1 text-warning"></i> Knowledge Gaps (<span id="gapsCountBadge">0</span>)
+          </button>
+        </li>
+      </ul>
+      
+      <!-- Filter Bar -->
+      <div class="d-flex flex-wrap gap-2 align-items-center">
+        <!-- Dynamic Machine Dropdown -->
+        <select id="filterMachine" class="form-select form-select-industria form-select-sm" style="width: 150px;" onchange="applyFilters()">
+          <option value="">All Machines</option>
+        </select>
+
+        <!-- Status Filter -->
+        <select id="filterStatus" class="form-select form-select-industria form-select-sm" style="width: 160px;" onchange="applyFilters()">
+          <option value="">All Statuses</option>
+          <option value="answered">Answered</option>
+          <option value="insufficient_evidence">Insufficient Evidence</option>
+        </select>
+
+        <!-- Date Range -->
+        <input type="date" id="filterDateFrom" class="form-control form-control-industria form-control-sm" style="width: 135px;" title="From date" onchange="applyFilters()">
+        <input type="date" id="filterDateTo" class="form-control form-control-industria form-control-sm" style="width: 135px;" title="To date" onchange="applyFilters()">
+
+        <!-- Engineer Username -->
+        <input type="text" id="filterEngineer" class="form-control form-control-industria form-control-sm" placeholder="Filter by engineer..." style="width: 150px;" oninput="applyFilters()">
+
+        <button class="btn btn-sm btn-outline-secondary" onclick="resetFilters()" title="Reset Filters">
+          <i class="bi bi-x-circle"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- All Queries Table Tab -->
+    <div id="tabAllQueriesView">
+      <div class="table-responsive">
+        <table class="table table-industria align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Engineer</th>
+              <th>Machine</th>
+              <th>Question</th>
+              <th>Status</th>
+              <th>Citations</th>
+              <th>Reviewed</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="questionsTableBody">
+            <tr>
+              <td colspan="8" class="text-center py-4 text-muted">
+                <div class="spinner-border spinner-border-sm text-info mb-1"></div> Loading query logs...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Knowledge Gaps Panel Tab -->
+    <div id="tabKnowledgeGapsView" style="display:none;">
+      <div class="p-3 border-bottom border-secondary bg-dark">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-info-circle-fill text-warning fs-5"></i>
+          <div>
+            <strong class="text-light">Knowledge Gaps Analysis</strong>
+            <p class="text-muted small mb-0">These questions could not be answered because the technical details are missing from the current indexed manuals. Use these insights to identify manual revisions or documentation additions required.</p>
+          </div>
+        </div>
+      </div>
+      <div id="knowledgeGapsList" class="p-3">
+        <div class="text-center text-muted py-4">
+          <div class="spinner-border spinner-border-sm text-info mb-2"></div><br>Loading knowledge gaps...
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal: Query Detail Inspection -->
+<div class="modal fade" id="inspectQueryModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content card-industria border-secondary">
+      <div class="modal-header card-header-industria">
+        <h5 class="modal-title d-flex align-items-center gap-2">
+          <i class="bi bi-search text-info"></i> Query Audit Record #<span id="inspectModalId"></span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        
+        <div class="row g-2 mb-3 pb-3 border-bottom border-secondary">
+          <div class="col-6 col-md-3">
+            <small class="text-muted d-block">Engineer</small>
+            <strong id="inspectEngineer" class="text-light"></strong>
+          </div>
+          <div class="col-6 col-md-3">
+            <small class="text-muted d-block">Machine Target</small>
+            <span class="badge bg-primary" id="inspectMachine"></span>
+          </div>
+          <div class="col-6 col-md-3">
+            <small class="text-muted d-block">Timestamp</small>
+            <small id="inspectTime" class="text-light"></small>
+          </div>
+          <div class="col-6 col-md-3">
+            <small class="text-muted d-block">Resolution Status</small>
+            <span id="inspectStatusBadge"></span>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="text-muted small fw-semibold text-uppercase">Question Asked</label>
+          <div class="p-3 rounded bg-dark border border-secondary text-light fw-medium" id="inspectQuestion"></div>
+        </div>
+
+        <div class="mb-3">
+          <label class="text-muted small fw-semibold text-uppercase">Generated Answer</label>
+          <div class="p-3 rounded card-industria border-secondary text-light" id="inspectAnswer"></div>
+        </div>
+
+        <div class="mb-3">
+          <label class="text-muted small fw-semibold text-uppercase">Source Citations</label>
+          <div id="inspectCitations" class="d-flex flex-wrap gap-1 mt-1"></div>
+        </div>
+
+        <div>
+          <label class="text-muted small fw-semibold text-uppercase">Retrieved Passages from Isolated Vector Search</label>
+          <div id="inspectPassages" class="accordion mt-1"></div>
+        </div>
+
+      </div>
+      <div class="modal-footer border-secondary d-flex justify-content-between">
+        <div id="inspectReviewBtnContainer"></div>
+        <button type="button" class="btn btn-outline-industria" data-bs-dismiss="modal">Close Audit Record</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  let questionsData = [];
+  let currentActiveTab = 'all';
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    await fetchFilterMachines();
+    await loadDashboard();
+  });
+
+  async function fetchFilterMachines() {
+    try {
+      const resp = await fetch('/api/machines/');
+      const data = await resp.json();
+      const machines = Array.isArray(data) ? data : (data.results || []);
+      const select = document.getElementById('filterMachine');
+      select.innerHTML = '<option value="">All Machines</option>';
+      machines.forEach(m => {
+        select.innerHTML += `<option value="${escapeHtml(m.machine_id)}">${escapeHtml(m.model)} (${escapeHtml(m.machine_id)})</option>`;
+      });
+    } catch(e) {
+      console.error('Failed to load filter machines:', e);
+    }
+  }
+
+  async function loadDashboard() {
+    await fetchDashboardMetrics();
+    await fetchQuestions();
+  }
+
+  function switchTab(tab) {
+    currentActiveTab = tab;
+    document.getElementById('tabAllBtn').classList.toggle('active', tab === 'all');
+    document.getElementById('tabGapsBtn').classList.toggle('active', tab === 'gaps');
+    document.getElementById('tabAllQueriesView').style.display = (tab === 'all') ? 'block' : 'none';
+    document.getElementById('tabKnowledgeGapsView').style.display = (tab === 'gaps') ? 'block' : 'none';
+
+    if (tab === 'gaps') {
+      fetchKnowledgeGaps();
+    }
+  }
+
+  async function fetchDashboardMetrics() {
+    try {
+      const resp = await fetch('/api/supervisor/dashboard/');
+      const data = await resp.json();
+
+      document.getElementById('statTotalQueries').innerText = data.metrics.total_questions;
+      document.getElementById('statAnsweredQueries').innerText = data.metrics.answered_questions;
+      document.getElementById('statInsufficientQueries').innerText = data.metrics.insufficient_evidence_questions;
+      document.getElementById('gapsCountBadge').innerText = data.metrics.insufficient_evidence_questions;
+      document.getElementById('statRate').innerText = `${data.metrics.evidence_rate_percentage}%`;
+
+      // Render machine distribution grid
+      const grid = document.getElementById('machineDistributionGrid');
+      grid.innerHTML = '';
+      data.machine_distribution.forEach(m => {
+        const total = m.total_questions || 0;
+        const rate = total > 0 ? Math.round((m.answered_count / total) * 100) : 0;
+        grid.innerHTML += `
+          <div class="col-12 col-md-6">
+            <div class="card card-industria p-3">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge bg-primary fs-6">${escapeHtml(m.machine_id)}</span>
+                <span class="text-muted small">${escapeHtml(m.name)}</span>
+              </div>
+              <h5 class="fw-bold text-light mb-2">${escapeHtml(m.model)}</h5>
+              <div class="d-flex gap-3 text-muted small mb-2">
+                <div>Total Queries: <strong class="text-light">${m.total_questions}</strong></div>
+                <div>Answered: <strong class="text-success">${m.answered_count}</strong></div>
+                <div>Insufficient: <strong class="text-warning">${m.insufficient_count}</strong></div>
+              </div>
+              <div class="progress" style="height: 6px;">
+                <div class="progress-bar bg-success" role="progressbar" style="width: ${rate}%;" title="Evidence Rate: ${rate}%"></div>
+              </div>
+              <small class="text-muted mt-1 d-block">Grounded evidence rate: ${rate}%</small>
+            </div>
+          </div>
+        `;
+      });
+    } catch (e) {
+      console.error('Failed to load supervisor dashboard metrics:', e);
+    }
+  }
+
+  async function fetchQuestions() {
+    const tbody = document.getElementById('questionsTableBody');
+    const machine = document.getElementById('filterMachine').value;
+    const status = document.getElementById('filterStatus').value;
+    const dateFrom = document.getElementById('filterDateFrom').value;
+    const dateTo = document.getElementById('filterDateTo').value;
+    const engineer = document.getElementById('filterEngineer').value.trim();
+
+    let url = '/api/supervisor/questions/?';
+    if (machine) url += `machine_id=${encodeURIComponent(machine)}&`;
+    if (status) url += `status=${encodeURIComponent(status)}&`;
+    if (dateFrom) url += `date_from=${encodeURIComponent(dateFrom)}&`;
+    if (dateTo) url += `date_to=${encodeURIComponent(dateTo)}&`;
+    if (engineer) url += `engineer=${encodeURIComponent(engineer)}&`;
+
+    try {
+      const resp = await fetch(url);
+      const data = await resp.json();
+      questionsData = Array.isArray(data) ? data : (data.results || []);
+
+      if (questionsData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No query logs match the filter criteria.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = '';
+      questionsData.forEach(q => {
+        const isAnswered = q.status === 'answered';
+        const citationsCount = q.citations ? q.citations.length : 0;
+        const isReviewed = q.reviewed === true;
+        const tr = document.createElement('tr');
+        if (isReviewed) tr.classList.add('opacity-75');
+
+        tr.innerHTML = `
+          <td class="small text-muted">${new Date(q.created_at).toLocaleString()}</td>
+          <td><span class="fw-semibold text-light">${escapeHtml(q.username)}</span></td>
+          <td><span class="badge bg-dark border border-secondary text-info">${escapeHtml(q.machine_id)}</span></td>
+          <td class="text-light" style="max-width: 280px;">
+            <div class="text-truncate">${escapeHtml(q.question)}</div>
+          </td>
+          <td>
+            <span class="badge ${isAnswered ? 'badge-answered' : 'badge-insufficient'}">
+              ${isAnswered ? 'Answered' : 'Insufficient Evidence'}
+            </span>
+          </td>
+          <td>
+            <span class="badge bg-secondary">${citationsCount} Citation(s)</span>
+          </td>
+          <td>
+            <span class="badge ${isReviewed ? 'bg-success' : 'bg-dark border border-secondary text-muted'}" id="revBadge_${q.id}">
+              ${isReviewed ? '<i class="bi bi-check-circle me-1"></i>Reviewed' : 'Pending'}
+            </span>
+          </td>
+          <td class="text-end">
+            <div class="btn-group btn-group-sm">
+              <button class="btn btn-outline-industria text-info" onclick="inspectQuery(${q.id})">
+                <i class="bi bi-file-text me-1"></i> Audit
+              </button>
+              <button class="btn ${isReviewed ? 'btn-success' : 'btn-outline-success'}" id="revBtn_${q.id}" onclick="toggleReview(${q.id})" title="${isReviewed ? 'Mark as Unreviewed' : 'Mark as Reviewed'}">
+                <i class="bi bi-check2"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Error loading query records.</td></tr>';
+    }
+  }
+
+  async function toggleReview(qId) {
+    const q = questionsData.find(item => item.id === qId);
+    if (!q) return;
+    const newReviewed = !q.reviewed;
+
+    try {
+      const resp = await fetch(`/api/supervisor/questions/${qId}/review/`, {
+        method: 'PATCH',
+        headers: {
+          'X-CSRFToken': csrftoken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reviewed: newReviewed })
+      });
+
+      if (resp.ok) {
+        q.reviewed = newReviewed;
+        const badge = document.getElementById(`revBadge_${qId}`);
+        const btn = document.getElementById(`revBtn_${qId}`);
+        if (badge) {
+          badge.className = `badge ${newReviewed ? 'bg-success' : 'bg-dark border border-secondary text-muted'}`;
+          badge.innerHTML = newReviewed ? '<i class="bi bi-check-circle me-1"></i>Reviewed' : 'Pending';
+        }
+        if (btn) {
+          btn.className = `btn ${newReviewed ? 'btn-success' : 'btn-outline-success'}`;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to toggle review:', e);
+    }
+  }
+
+  async function fetchKnowledgeGaps() {
+    const listEl = document.getElementById('knowledgeGapsList');
+    try {
+      const resp = await fetch('/api/supervisor/knowledge-gaps/');
+      const data = await resp.json();
+      const gaps = Array.isArray(data) ? data : (data.results || []);
+
+      if (gaps.length === 0) {
+        listEl.innerHTML = '<div class="text-center py-4 text-muted"><i class="bi bi-check-circle-fill text-success fs-3 d-block mb-2"></i>No unresolved knowledge gaps found. All questions were successfully grounded.</div>';
+        return;
+      }
+
+      listEl.innerHTML = '';
+      gaps.forEach(g => {
+        const item = document.createElement('div');
+        item.className = 'p-3 mb-2 rounded bg-dark border border-warning border-opacity-25';
+        item.innerHTML = `
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-primary">${escapeHtml(g.machine_id)}</span>
+                <span class="badge badge-insufficient">Missing Coverage</span>
+                <small class="text-muted">Asked by <strong>${escapeHtml(g.username)}</strong> on ${new Date(g.created_at).toLocaleString()}</small>
+              </div>
+              <h6 class="text-light fw-bold mb-1">${escapeHtml(g.question)}</h6>
+              <p class="text-muted small mb-0 font-monospace">${escapeHtml(g.answer)}</p>
+            </div>
+            <button class="btn btn-sm btn-outline-info" onclick="inspectQuery(${g.id})">
+              <i class="bi bi-search me-1"></i> Inspect
+            </button>
+          </div>
+        `;
+        listEl.appendChild(item);
+      });
+    } catch(e) {
+      listEl.innerHTML = '<div class="text-danger p-3">Failed to load knowledge gaps.</div>';
+    }
+  }
+
+  function applyFilters() {
+    fetchQuestions();
+  }
+
+  function resetFilters() {
+    document.getElementById('filterMachine').value = '';
+    document.getElementById('filterStatus').value = '';
+    document.getElementById('filterDateFrom').value = '';
+    document.getElementById('filterDateTo').value = '';
+    document.getElementById('filterEngineer').value = '';
+    fetchQuestions();
+  }
+
+  function inspectQuery(qId) {
+    const q = questionsData.find(item => item.id === qId);
+    if (!q) return;
+
+    document.getElementById('inspectModalId').innerText = q.id;
+    document.getElementById('inspectEngineer').innerText = q.username;
+    document.getElementById('inspectMachine').innerText = q.machine_id;
+    document.getElementById('inspectTime').innerText = new Date(q.created_at).toLocaleString();
+
+    const isAnswered = q.status === 'answered';
+    document.getElementById('inspectStatusBadge').innerHTML = `
+      <span class="badge ${isAnswered ? 'badge-answered' : 'badge-insufficient'}">
+        ${isAnswered ? 'Answered' : 'Insufficient Evidence'}
+      </span>
+    `;
+
+    document.getElementById('inspectQuestion').innerText = q.question;
+    document.getElementById('inspectAnswer').innerHTML = escapeHtml(q.answer).replace(/\n/g, '<br>');
+
+    // Review Button Container in Modal
+    const revContainer = document.getElementById('inspectReviewBtnContainer');
+    revContainer.innerHTML = `
+      <button class="btn btn-sm ${q.reviewed ? 'btn-success' : 'btn-outline-success'}" onclick="toggleReview(${q.id}); inspectQuery(${q.id});">
+        <i class="bi bi-check2-circle me-1"></i> ${q.reviewed ? 'Reviewed (Click to Unmark)' : 'Mark as Reviewed'}
+      </button>
+    `;
+
+    // Citations
+    const citationsContainer = document.getElementById('inspectCitations');
+    citationsContainer.innerHTML = '';
+    if (q.citations && q.citations.length > 0) {
+      q.citations.forEach(c => {
+        citationsContainer.innerHTML += `
+          <button type="button" class="citation-pill" onclick="viewPdfPage(${c.manual_id || 1}, '${escapeHtml(c.document_id)}', ${c.page_number}, '${escapeHtml(c.title || c.document_id)}')">
+            <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
+            <span>${escapeHtml(c.document_id)} (Rev ${escapeHtml(c.revision)}) &bull; <strong>Page ${c.page_number}</strong></span>
+          </button>
+        `;
+      });
+    } else {
+      citationsContainer.innerHTML = '<span class="text-muted small">No citations attached (Insufficient evidence query).</span>';
+    }
+
+    // Passages
+    const passagesContainer = document.getElementById('inspectPassages');
+    passagesContainer.innerHTML = '';
+    if (q.supporting_passages && q.supporting_passages.length > 0) {
+      q.supporting_passages.forEach((p, idx) => {
+        passagesContainer.innerHTML += `
+          <div class="accordion-item card-industria border-secondary mb-2">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed bg-dark text-light small py-2" type="button" data-bs-toggle="collapse" data-bs-target="#passageCol${idx}">
+                <i class="bi bi-file-text me-2 text-info"></i> Supporting Passage ${idx + 1}
+              </button>
+            </h2>
+            <div id="passageCol${idx}" class="accordion-collapse collapse">
+              <div class="accordion-body small text-muted font-monospace bg-dark">
+                ${escapeHtml(p).replace(/\n/g, '<br>')}
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    } else {
+      passagesContainer.innerHTML = '<span class="text-muted small">No supporting passages retained.</span>';
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('inspectQueryModal'));
+    modal.show();
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+</script>
+{% endblock %}

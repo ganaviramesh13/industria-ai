@@ -1,0 +1,439 @@
+{% extends 'base.html' %}
+
+{% block title %}INDUSTRIA AI — Administrator Ingestion Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-lg-4 py-4">
+
+  <!-- Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1 d-flex align-items-center gap-2">
+        <i class="bi bi-shield-lock-fill text-warning"></i> Administrator Knowledge Portal
+      </h3>
+      <p class="text-muted small mb-0">Manage registered industrial equipment, upload PDF technical manuals, and monitor RAG indexing.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-industria" data-bs-toggle="modal" data-bs-target="#registerMachineModal">
+        <i class="bi bi-plus-circle me-1"></i> Register New Machine
+      </button>
+      <button class="btn btn-primary-industria" data-bs-toggle="modal" data-bs-target="#uploadManualModal">
+        <i class="bi bi-cloud-arrow-up-fill me-1"></i> Upload Manual PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- Metric Statistics Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card card-industria p-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <span class="text-muted small text-uppercase">Total Machines</span>
+            <h3 class="fw-bold text-light mb-0 mt-1" id="statMachines">2</h3>
+          </div>
+          <div class="fs-1 text-info opacity-50"><i class="bi bi-hdd-rack"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card card-industria p-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <span class="text-muted small text-uppercase">Manual Documents</span>
+            <h3 class="fw-bold text-light mb-0 mt-1" id="statManuals">3</h3>
+          </div>
+          <div class="fs-1 text-primary opacity-50"><i class="bi bi-file-earmark-pdf"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card card-industria p-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <span class="text-muted small text-uppercase">Indexed Status</span>
+            <h3 class="fw-bold text-success mb-0 mt-1" id="statIndexed">3 / 3</h3>
+          </div>
+          <div class="fs-1 text-success opacity-50"><i class="bi bi-check-circle"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card card-industria p-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <span class="text-muted small text-uppercase">Vector Chunks</span>
+            <h3 class="fw-bold text-info mb-0 mt-1" id="statChunks">48</h3>
+          </div>
+          <div class="fs-1 text-teal opacity-50"><i class="bi bi-cpu"></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manuals Inventory Table -->
+  <div class="card card-industria mb-4">
+    <div class="card-header card-header-industria d-flex justify-content-between align-items-center">
+      <span class="fw-bold"><i class="bi bi-table me-2 text-info"></i> Registered Manuals & Indexing Status</span>
+      <button class="btn btn-sm btn-outline-industria py-0 px-2" onclick="loadManuals()">
+        <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+      </button>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-industria align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Document ID</th>
+            <th>Revision</th>
+            <th>Title</th>
+            <th>Machine ID</th>
+            <th>Pages</th>
+            <th>Chunks</th>
+            <th>Status</th>
+            <th>Uploaded At</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="manualsTableBody">
+          <tr>
+            <td colspan="9" class="text-center py-4 text-muted">
+              <div class="spinner-border spinner-border-sm text-info mb-1"></div> Loading manuals...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Registered Machines Cards -->
+  <div class="card card-industria">
+    <div class="card-header card-header-industria">
+      <span class="fw-bold"><i class="bi bi-cpu me-2 text-info"></i> Active Industrial Machines</span>
+    </div>
+    <div class="card-body p-3">
+      <div class="row g-3" id="machinesGrid">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal: Upload Manual PDF -->
+<div class="modal fade" id="uploadManualModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content card-industria border-secondary">
+      <div class="modal-header card-header-industria">
+        <h5 class="modal-title"><i class="bi bi-cloud-arrow-up-fill text-info me-2"></i> Upload Manual PDF</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="uploadManualForm" onsubmit="handleUploadManual(event)">
+        <div class="modal-body p-4">
+          <div id="uploadAlert" class="alert alert-danger py-2 small d-none"></div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted small fw-semibold">Target Machine</label>
+            <select id="uploadMachineSelect" class="form-select form-select-industria" required>
+              <option value="">Select registered machine...</option>
+            </select>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-8">
+              <label class="form-label text-muted small fw-semibold">Document Title</label>
+              <input type="text" id="uploadDocTitle" class="form-control form-control-industria" placeholder="e.g. HP-200 Operations Manual" required>
+            </div>
+            <div class="col-4">
+              <label class="form-label text-muted small fw-semibold">Revision</label>
+              <input type="text" id="uploadDocRev" class="form-control form-control-industria" value="1.0" required>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted small fw-semibold">Document ID</label>
+            <input type="text" id="uploadDocId" class="form-control form-control-industria" placeholder="e.g. HP-OPS-01" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted small fw-semibold">PDF Document File</label>
+            <input type="file" id="uploadFileInput" class="form-control form-control-industria" accept=".pdf" required>
+            <small class="text-dim">Must be a PDF document. Page numbering will be preserved from page 1.</small>
+          </div>
+
+          <div id="uploadProgress" class="progress d-none mb-3" style="height: 6px;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" style="width: 100%"></div>
+          </div>
+        </div>
+        <div class="modal-footer border-secondary">
+          <button type="button" class="btn btn-outline-industria" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" id="uploadSubmitBtn" class="btn btn-primary-industria">
+            <i class="bi bi-upload me-1"></i> Ingest & Index
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Register Machine -->
+<div class="modal fade" id="registerMachineModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content card-industria border-secondary">
+      <div class="modal-header card-header-industria">
+        <h5 class="modal-title"><i class="bi bi-plus-circle text-info me-2"></i> Register New Industrial Machine</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="registerMachineForm" onsubmit="handleRegisterMachine(event)">
+        <div class="modal-body p-4">
+          <div id="machineAlert" class="alert alert-danger py-2 small d-none"></div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted small fw-semibold">Machine Identifier (Unique)</label>
+            <input type="text" id="machineIdInput" class="form-control form-control-industria" placeholder="e.g. M-HP300" required>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label text-muted small fw-semibold">Model</label>
+              <input type="text" id="machineModelInput" class="form-control form-control-industria" placeholder="e.g. HP-300" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label text-muted small fw-semibold">Standard Name</label>
+              <input type="text" id="machineNameInput" class="form-control form-control-industria" placeholder="e.g. Hydraulic forming press" required>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted small fw-semibold">Technical Description</label>
+            <textarea id="machineDescInput" class="form-control form-control-industria" rows="3" placeholder="Enter specifications, fluid types, operating boundaries..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-secondary">
+          <button type="button" class="btn btn-outline-industria" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" id="machineSubmitBtn" class="btn btn-primary-industria">
+            <i class="bi bi-save me-1"></i> Register Machine
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  let adminMachines = [];
+  let adminManuals = [];
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadData();
+  });
+
+  async function loadData() {
+    await loadMachines();
+    await loadManuals();
+  }
+
+  async function loadMachines() {
+    try {
+      const resp = await fetch('/api/machines/');
+      const data = await resp.json();
+      adminMachines = Array.isArray(data) ? data : (data.results || []);
+      document.getElementById('statMachines').innerText = adminMachines.length;
+
+      // Populate upload dropdown
+      const select = document.getElementById('uploadMachineSelect');
+      select.innerHTML = '<option value="">Select registered machine...</option>';
+      adminMachines.forEach(m => {
+        select.innerHTML += `<option value="${m.machine_id}">${m.machine_id} — ${m.model} (${m.name})</option>`;
+      });
+
+      // Render machine cards
+      const grid = document.getElementById('machinesGrid');
+      grid.innerHTML = '';
+      adminMachines.forEach(m => {
+        grid.innerHTML += `
+          <div class="col-12 col-md-6 col-lg-4">
+            <div class="p-3 rounded bg-dark border border-secondary h-100">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge bg-primary">${m.machine_id}</span>
+                <span class="badge bg-secondary">${m.manuals_count} Manual(s)</span>
+              </div>
+              <h6 class="fw-bold text-light mb-1">${escapeHtml(m.model)}</h6>
+              <div class="text-info small mb-2">${escapeHtml(m.name)}</div>
+              <p class="text-muted small mb-0">${escapeHtml(m.description || 'No description provided.')}</p>
+            </div>
+          </div>
+        `;
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function loadManuals() {
+    const tbody = document.getElementById('manualsTableBody');
+    try {
+      const resp = await fetch('/api/manuals/');
+      const data = await resp.json();
+      adminManuals = data.results || data;
+
+      document.getElementById('statManuals').innerText = adminManuals.length;
+      const indexedCount = adminManuals.filter(m => m.indexing_status === 'INDEXED').length;
+      document.getElementById('statIndexed').innerText = `${indexedCount} / ${adminManuals.length}`;
+
+      const totalChunks = adminManuals.reduce((acc, m) => acc + (m.chunk_count || 0), 0);
+      document.getElementById('statChunks').innerText = totalChunks;
+
+      if (adminManuals.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">No manuals uploaded yet.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = '';
+      adminManuals.forEach(m => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${escapeHtml(m.document_id)}</strong></td>
+          <td><span class="badge bg-secondary">Rev ${escapeHtml(m.revision)}</span></td>
+          <td>${escapeHtml(m.title)}</td>
+          <td><span class="badge bg-dark border border-secondary text-info">${escapeHtml(m.machine_id)}</span></td>
+          <td>${m.page_count || '-'}</td>
+          <td>${m.chunk_count || '-'}</td>
+          <td>
+            <span class="badge ${m.indexing_status === 'INDEXED' ? 'badge-answered' : (m.indexing_status === 'FAILED' ? 'badge-insufficient' : 'badge-role-admin')}">
+              ${m.indexing_status}
+            </span>
+          </td>
+          <td class="small text-muted">${new Date(m.uploaded_at).toLocaleDateString()}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-industria text-info me-1" onclick="viewPdfPage(${m.id}, '${escapeHtml(m.document_id)}', 1, '${escapeHtml(m.title)}')">
+              <i class="bi bi-eye"></i> View
+            </button>
+            <button class="btn btn-sm btn-outline-industria text-warning" onclick="reindexManual(${m.id}, '${escapeHtml(m.document_id)}')">
+              <i class="bi bi-arrow-repeat"></i> Re-index
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">Error loading manuals.</td></tr>';
+    }
+  }
+
+  async function handleUploadManual(e) {
+    e.preventDefault();
+    const alertBox = document.getElementById('uploadAlert');
+    const submitBtn = document.getElementById('uploadSubmitBtn');
+    const progressBar = document.getElementById('uploadProgress');
+
+    alertBox.classList.add('d-none');
+    submitBtn.disabled = true;
+    progressBar.classList.remove('d-none');
+
+    const formData = new FormData();
+    formData.append('machine_id', document.getElementById('uploadMachineSelect').value);
+    formData.append('title', document.getElementById('uploadDocTitle').value.trim());
+    formData.append('revision', document.getElementById('uploadDocRev').value.trim());
+    formData.append('document_id', document.getElementById('uploadDocId').value.trim());
+    formData.append('pdf_file', document.getElementById('uploadFileInput').files[0]);
+
+    try {
+      const resp = await fetch('/api/manuals/upload/', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrftoken
+        },
+        body: formData
+      });
+
+      const data = await resp.json();
+
+      if (resp.ok) {
+        bootstrap.Modal.getInstance(document.getElementById('uploadManualModal')).hide();
+        document.getElementById('uploadManualForm').reset();
+        await loadManuals();
+      } else {
+        alertBox.innerText = data.error || JSON.stringify(data);
+        alertBox.classList.remove('d-none');
+      }
+    } catch (err) {
+      alertBox.innerText = 'Upload failed due to connection or server error.';
+      alertBox.classList.remove('d-none');
+    } finally {
+      submitBtn.disabled = false;
+      progressBar.classList.add('d-none');
+    }
+  }
+
+  async function handleRegisterMachine(e) {
+    e.preventDefault();
+    const alertBox = document.getElementById('machineAlert');
+    const submitBtn = document.getElementById('machineSubmitBtn');
+
+    alertBox.classList.add('d-none');
+    submitBtn.disabled = true;
+
+    const payload = {
+      machine_id: document.getElementById('machineIdInput').value.trim(),
+      model: document.getElementById('machineModelInput').value.trim(),
+      name: document.getElementById('machineNameInput').value.trim(),
+      description: document.getElementById('machineDescInput').value.trim()
+    };
+
+    try {
+      const resp = await fetch('/api/machines/', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrftoken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (resp.ok) {
+        bootstrap.Modal.getInstance(document.getElementById('registerMachineModal')).hide();
+        document.getElementById('registerMachineForm').reset();
+        await loadMachines();
+      } else {
+        const data = await resp.json();
+        alertBox.innerText = JSON.stringify(data);
+        alertBox.classList.remove('d-none');
+      }
+    } catch (err) {
+      alertBox.innerText = 'Registration failed.';
+      alertBox.classList.remove('d-none');
+    } finally {
+      submitBtn.disabled = false;
+    }
+  }
+
+  async function reindexManual(manualId, docId) {
+    if (!confirm(`Re-index ${docId}? This will purge previous vector chunks and re-embed all pages.`)) return;
+
+    try {
+      const resp = await fetch(`/api/manuals/${manualId}/reindex/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrftoken,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (resp.ok) {
+        await loadManuals();
+      } else {
+        alert('Re-indexing failed.');
+      }
+    } catch (e) {
+      alert('Error connecting to server.');
+    }
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+</script>
+{% endblock %}
+

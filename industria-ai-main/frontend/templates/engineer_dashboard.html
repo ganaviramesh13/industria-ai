@@ -1,0 +1,483 @@
+{% extends 'base.html' %}
+
+{% block title %}INDUSTRIA AI — Industrial Manual Assistant{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-lg-4 py-3">
+
+  <!-- Machine Selection & Header Bar -->
+  <div class="row g-3 mb-3 align-items-center">
+    <div class="col-12 col-md-5">
+      <h4 class="fw-bold mb-1 d-flex align-items-center gap-2">
+        <i class="bi bi-robot text-info"></i> Industrial Manual Assistant
+      </h4>
+      <p class="text-muted small mb-0">Select an industrial machine to query its operational and maintenance manuals with strict isolation.</p>
+    </div>
+
+    <!-- Machine Selector: Dropdown + Quick Buttons -->
+    <div class="col-12 col-md-7">
+      <div class="card card-industria p-2 border-secondary">
+        <div class="row g-2 align-items-center">
+          <div class="col-12 col-sm-6">
+            <label for="machineDropdown" class="form-label text-info fw-semibold small mb-1 d-flex align-items-center gap-1">
+              <i class="bi bi-hdd-rack-fill"></i> Select Machine:
+            </label>
+            <select id="machineDropdown" class="form-select form-select-industria form-select-sm"
+                    onchange="selectMachine(this.value)" style="background-color:#1a2035;color:#e0e6f0;border-color:#2d3a55;">
+              <option value="" disabled selected>— Select a machine before asking —</option>
+            </select>
+          </div>
+          <div class="col-12 col-sm-6">
+            <span class="text-muted small d-block mb-1">Quick Select:</span>
+            <div class="d-flex flex-wrap gap-1" id="machineSelectorContainer">
+              <div class="spinner-border spinner-border-sm text-info my-auto" role="status"></div>
+              <span class="text-muted small ms-1">Loading machines...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Machine Context Banner -->
+  <div class="alert alert-dark border-secondary py-2 px-3 d-flex flex-wrap justify-content-between align-items-center mb-3 card-industria" id="activeMachineBanner">
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge bg-secondary px-2 py-1" id="activeMachineBadge"><i class="bi bi-slash-circle me-1"></i> NO TARGET</span>
+      <strong class="fs-6" id="activeMachineTitle">
+        <span class="text-warning"><i class="bi bi-arrow-up-circle me-1"></i>Please select an industrial machine above to begin querying manuals</span>
+      </strong>
+    </div>
+    <div class="text-muted small">
+      <i class="bi bi-shield-check text-success me-1"></i> Strict Machine Isolation Enforced &bull; Closed Corpus
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <!-- Main Chat Workspace -->
+    <div class="col-12 col-lg-8">
+      <div class="card card-industria h-100 d-flex flex-column">
+        
+        <!-- Chat Feed -->
+        <div class="chat-container flex-grow-1" id="chatFeed">
+          <!-- Initial Welcome Assistant Message -->
+          <div class="chat-bubble-assistant">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="brand-badge py-0 px-2 small">INDUSTRIA AI</span>
+              <span class="badge badge-answered small"><i class="bi bi-check-circle me-1"></i> System Ready</span>
+            </div>
+            <p class="mb-2">
+              Welcome, <strong>{{ user.username }}</strong> <span class="badge bg-secondary small">{{ user.get_role_display }}</span>. I am your evidence-grounded industrial maintenance assistant powered by official Groq LLM integration.
+            </p>
+            <p class="text-muted small mb-3">
+              To get started, select an industrial machine (<strong>AC-90</strong> or <strong>HP-200</strong>) from the dropdown above. Answers are generated exclusively from its indexed technical manuals with verifiable page citations.
+            </p>
+            <div class="p-2 border border-secondary rounded bg-dark small" id="suggestedQueriesContainer" style="display:none;">
+              <span class="text-info fw-semibold"><i class="bi bi-lightbulb me-1"></i> Suggested Queries for selected machine:</span>
+              <div class="d-flex flex-wrap gap-1 mt-2" id="suggestedQueriesBox">
+                <!-- Injected via JavaScript based on selected machine -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Question Input Footer -->
+        <div class="p-3 border-top border-secondary card-header-industria">
+          <form id="questionForm" onsubmit="submitQuestion(event)">
+            <div class="input-group">
+              <input type="text" id="questionInput" class="form-control form-control-industria" placeholder="Select a machine above, then ask a maintenance or operating question..." required autocomplete="off">
+              <button class="btn btn-primary-industria px-4" type="submit" id="submitBtn" disabled>
+                <i class="bi bi-send-fill me-1"></i> Query Manual
+              </button>
+            </div>
+          </form>
+          <div class="d-flex justify-content-between align-items-center mt-2 px-1">
+            <small class="text-dim" id="modelProviderBadge">
+              <i class="bi bi-cpu me-1"></i> LLM Engine: Official Groq API &bull; Vector Search: Isolated ChromaDB
+            </small>
+            <small class="text-muted">
+              Press <strong>Enter</strong> to submit
+            </small>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Personal Question History Sidebar -->
+    <div class="col-12 col-lg-4">
+      <div class="card card-industria h-100">
+        <div class="card-header card-header-industria d-flex justify-content-between align-items-center">
+          <span class="fw-bold"><i class="bi bi-clock-history text-info me-1"></i> My Recent Queries</span>
+          <button class="btn btn-sm btn-outline-industria py-0 px-2" onclick="loadPersonalHistory()" title="Refresh query history">
+            <i class="bi bi-arrow-clockwise"></i>
+          </button>
+        </div>
+        <div class="card-body p-2" style="max-height: calc(100vh - 280px); overflow-y: auto;" id="historyList">
+          <div class="text-center text-muted py-4 small">
+            <div class="spinner-border spinner-border-sm text-info mb-2"></div><br>Loading query history...
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  let registeredMachines = [];
+  let selectedMachineId = '';
+
+  // Suggested queries mapped per machine
+  const machineSuggestions = {
+    'M-HP200': [
+      'What does E17 mean?',
+      'What triggers E17, and what observations should be collected?',
+      'When is planned RF-20 return-filter replacement due?',
+      'What is the pump replacement price?'
+    ],
+    'M-AC90': [
+      'What does E17 mean?',
+      'How often should the AF-10 filter indicator be checked, and when is planned replacement due?',
+      'What is the HP-200 return-filter replacement interval?'
+    ]
+  };
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    await fetchMachines();
+    loadPersonalHistory();
+  });
+
+  async function fetchMachines() {
+    const container = document.getElementById('machineSelectorContainer');
+    const dropdown = document.getElementById('machineDropdown');
+    try {
+      const resp = await fetch('/api/machines/');
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      registeredMachines = Array.isArray(data) ? data : (data.results || []);
+
+      if (registeredMachines.length === 0) {
+        container.innerHTML = '<span class="text-warning small"><i class="bi bi-exclamation-triangle me-1"></i>No machines registered.</span>';
+        dropdown.innerHTML = '<option value="" disabled selected>— No machines registered —</option>';
+        return;
+      }
+
+      renderMachineSelectors();
+    } catch (e) {
+      console.error('Failed to fetch machines:', e);
+      container.innerHTML = '<span class="text-danger small"><i class="bi bi-x-circle me-1"></i>Failed to load machines.</span>';
+      dropdown.innerHTML = '<option value="" disabled selected>— Error loading machines —</option>';
+    }
+  }
+
+  function renderMachineSelectors() {
+    const container = document.getElementById('machineSelectorContainer');
+    container.innerHTML = '';
+    const dropdown = document.getElementById('machineDropdown');
+
+    // Keep the placeholder option, clear the rest
+    while (dropdown.options.length > 1) dropdown.remove(1);
+
+    registeredMachines.forEach(m => {
+      // Card buttons
+      const isSelected = m.machine_id === selectedMachineId;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `btn btn-sm ${isSelected ? 'btn-primary-industria' : 'btn-outline-industria'} py-0 px-2 d-flex align-items-center gap-1`;
+      btn.style.fontSize = '0.8rem';
+      btn.innerHTML = `<i class="bi bi-hdd-rack"></i> <strong>${escapeHtml(m.model)}</strong>`;
+      btn.onclick = () => selectMachine(m.machine_id);
+      container.appendChild(btn);
+
+      // Dropdown option
+      const opt = document.createElement('option');
+      opt.value = m.machine_id;
+      opt.text = `${m.model} — ${m.name} (${m.machine_id})`;
+      if (m.machine_id === selectedMachineId) opt.selected = true;
+      dropdown.appendChild(opt);
+    });
+
+    // Sync dropdown value
+    dropdown.value = selectedMachineId || '';
+
+    updateMachineContext();
+  }
+
+  function selectMachine(mId) {
+    if (!mId) return;
+    selectedMachineId = mId;
+    renderMachineSelectors();
+    updateMachineContext();
+
+    // Sync dropdown
+    const dropdown = document.getElementById('machineDropdown');
+    if (dropdown) {
+      dropdown.value = mId;
+      dropdown.classList.remove('is-invalid');
+    }
+
+    // Focus input
+    const input = document.getElementById('questionInput');
+    if (input) {
+      input.placeholder = `Ask a question about ${mId} (e.g. What does E17 mean?)...`;
+      input.focus();
+    }
+  }
+
+  function updateMachineContext() {
+    const machine = registeredMachines.find(m => m.machine_id === selectedMachineId);
+    const titleEl = document.getElementById('activeMachineTitle');
+    const badgeEl = document.getElementById('activeMachineBadge');
+    const submitBtn = document.getElementById('submitBtn');
+    const suggestionsContainer = document.getElementById('suggestedQueriesContainer');
+
+    if (machine) {
+      titleEl.innerHTML = `<span class="text-info">${escapeHtml(machine.machine_id)} &bull; ${escapeHtml(machine.model)}</span> <span class="text-light">(${escapeHtml(machine.name)})</span>`;
+      badgeEl.className = 'badge bg-primary px-2 py-1';
+      badgeEl.innerHTML = '<i class="bi bi-cpu me-1"></i> CURRENT TARGET';
+      submitBtn.disabled = false;
+
+      // Update suggestions box
+      if (suggestionsContainer) suggestionsContainer.style.display = 'block';
+      const box = document.getElementById('suggestedQueriesBox');
+      if (box) {
+        box.innerHTML = '';
+        const suggestions = machineSuggestions[selectedMachineId] || ['What alarms are defined for this machine?'];
+        suggestions.forEach(q => {
+          const chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = 'btn btn-sm btn-outline-industria py-0 px-2 text-info text-start';
+          chip.style.fontSize = '0.78rem';
+          chip.innerText = q;
+          chip.onclick = () => {
+            document.getElementById('questionInput').value = q;
+            submitQuestion();
+          };
+          box.appendChild(chip);
+        });
+      }
+    } else {
+      titleEl.innerHTML = '<span class="text-warning"><i class="bi bi-arrow-up-circle me-1"></i>Please select an industrial machine above to begin querying manuals</span>';
+      badgeEl.className = 'badge bg-secondary px-2 py-1';
+      badgeEl.innerHTML = '<i class="bi bi-slash-circle me-1"></i> NO TARGET';
+      submitBtn.disabled = true;
+      if (suggestionsContainer) suggestionsContainer.style.display = 'none';
+    }
+  }
+
+  async function submitQuestion(e) {
+    if (e) e.preventDefault();
+    const input = document.getElementById('questionInput');
+    const question = input.value.trim();
+    if (!question) return;
+
+    // Validate machine selection
+    if (!selectedMachineId) {
+      const dropdown = document.getElementById('machineDropdown');
+      if (dropdown) {
+        dropdown.classList.add('is-invalid');
+        dropdown.focus();
+      }
+      renderErrorBubble('Please select a machine before asking a question. Choose a machine from the "Select Machine" dropdown above.');
+      return;
+    }
+
+    const chatFeed = document.getElementById('chatFeed');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // 1. Append User Bubble
+    const userBubble = document.createElement('div');
+    userBubble.className = 'chat-bubble-user';
+    userBubble.innerHTML = `
+      <div class="d-flex align-items-center justify-content-between mb-1">
+        <span class="badge bg-secondary small">${escapeHtml(selectedMachineId)}</span>
+        <small class="text-muted">Just now</small>
+      </div>
+      <div>${escapeHtml(question)}</div>
+    `;
+    chatFeed.appendChild(userBubble);
+    input.value = '';
+    chatFeed.scrollTop = chatFeed.scrollHeight;
+
+    // 2. Append Loading Placeholder
+    const loadingBubble = document.createElement('div');
+    loadingBubble.className = 'chat-bubble-assistant';
+    loadingBubble.id = 'loadingBubble';
+    loadingBubble.innerHTML = `
+      <div class="d-flex align-items-center gap-2">
+        <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+        <span class="text-muted small">Retrieving ${escapeHtml(selectedMachineId)} manuals & synthesizing evidence with Groq RAG...</span>
+      </div>
+    `;
+    chatFeed.appendChild(loadingBubble);
+    chatFeed.scrollTop = chatFeed.scrollHeight;
+
+    submitBtn.disabled = true;
+
+    try {
+      const resp = await fetch('/api/assistant/ask/', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrftoken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          machine_id: selectedMachineId,
+          question: question
+        })
+      });
+
+      const data = await resp.json();
+      loadingBubble.remove();
+
+      if (resp.ok) {
+        renderAssistantResponse(data);
+        loadPersonalHistory();
+      } else {
+        const errorMsg = data.error || (data.machine_id ? data.machine_id[0] : (data.question ? data.question[0] : 'Error querying assistant.'));
+        renderErrorBubble(errorMsg);
+      }
+    } catch (err) {
+      console.error(err);
+      loadingBubble.remove();
+      renderErrorBubble("Network or server connection failed. Please ensure the backend is running.");
+    } finally {
+      submitBtn.disabled = false;
+      chatFeed.scrollTop = chatFeed.scrollHeight;
+    }
+  }
+
+  function renderAssistantResponse(data) {
+    const chatFeed = document.getElementById('chatFeed');
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble-assistant';
+
+    const isAnswered = data.status === 'answered';
+    const statusBadge = isAnswered
+      ? `<span class="badge badge-answered"><i class="bi bi-check-circle-fill me-1"></i> Answered</span>`
+      : `<span class="badge badge-insufficient"><i class="bi bi-exclamation-triangle-fill me-1"></i> Insufficient Evidence</span>`;
+
+    // Verified Citations
+    let citationsHtml = '';
+    if (data.citations && data.citations.length > 0) {
+      citationsHtml = `<div class="mt-3 pt-2 border-top border-secondary">
+        <small class="text-muted d-block mb-1 fw-semibold"><i class="bi bi-bookmark-check text-info me-1"></i> Verified Citations (Click to view exact PDF page):</small>
+        <div class="d-flex flex-wrap">`;
+      data.citations.forEach(c => {
+        citationsHtml += `
+          <button type="button" class="citation-pill" onclick="viewPdfPage(${c.manual_id || 1}, '${escapeHtml(c.document_id)}', ${c.page_number}, '${escapeHtml(c.title || c.document_id)}')">
+            <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
+            <span>${escapeHtml(c.document_id)} (Rev ${escapeHtml(c.revision)}) &bull; <strong>Page ${c.page_number}</strong></span>
+          </button>
+        `;
+      });
+      citationsHtml += `</div></div>`;
+    }
+
+    // Supporting Passages Accordion
+    let passagesHtml = '';
+    if (data.supporting_passages && data.supporting_passages.length > 0) {
+      const pId = 'passages_' + Math.random().toString(36).substring(2, 9);
+      passagesHtml = `
+        <div class="mt-2">
+          <a class="text-info text-decoration-none small d-inline-flex align-items-center gap-1" data-bs-toggle="collapse" href="#${pId}" role="button">
+            <i class="bi bi-journal-text"></i> View Retrieved Evidence Passages (${data.supporting_passages.length})
+          </a>
+          <div class="collapse mt-2" id="${pId}">
+            <div class="p-2 rounded bg-dark border border-secondary small text-muted font-monospace" style="max-height: 200px; overflow-y: auto;">
+              ${data.supporting_passages.map((p, idx) => `<div class="mb-2 pb-2 border-bottom border-secondary"><strong>[Passage ${idx + 1}]</strong><br>${escapeHtml(p).replace(/\n/g, '<br>')}</div>`).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    const machineIdDisplay = data.selected_machine ? data.selected_machine.machine_id : selectedMachineId;
+
+    bubble.innerHTML = `
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="d-flex align-items-center gap-2">
+          <span class="brand-badge py-0 px-2 small">INDUSTRIA AI</span>
+          <span class="badge bg-dark border border-secondary text-info">${escapeHtml(machineIdDisplay)}</span>
+          ${statusBadge}
+        </div>
+        <small class="text-muted">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</small>
+      </div>
+      <div class="text-light leading-relaxed mb-2">${formatAnswerText(data.answer)}</div>
+      ${citationsHtml}
+      ${passagesHtml}
+    `;
+
+    chatFeed.appendChild(bubble);
+  }
+
+  function renderErrorBubble(msg) {
+    const chatFeed = document.getElementById('chatFeed');
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble-assistant border-danger';
+    bubble.innerHTML = `
+      <div class="d-flex align-items-center gap-2 text-danger mb-1">
+        <i class="bi bi-exclamation-octagon-fill"></i> <strong>Validation / Error</strong>
+      </div>
+      <p class="text-muted small mb-0">${escapeHtml(msg)}</p>
+    `;
+    chatFeed.appendChild(bubble);
+  }
+
+  async function loadPersonalHistory() {
+    const listEl = document.getElementById('historyList');
+    try {
+      const resp = await fetch('/api/assistant/history/');
+      const data = await resp.json();
+      const results = Array.isArray(data) ? data : (data.results || []);
+
+      if (!results || results.length === 0) {
+        listEl.innerHTML = '<div class="text-center text-muted py-4 small">No previous questions recorded.</div>';
+        return;
+      }
+
+      listEl.innerHTML = '';
+      results.forEach(item => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'p-2 mb-2 rounded bg-dark border border-secondary';
+        itemEl.style.cursor = 'pointer';
+        itemEl.innerHTML = `
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="badge bg-secondary" style="font-size: 0.7rem;">${escapeHtml(item.machine_id)}</span>
+            <span class="badge ${item.status === 'answered' ? 'badge-answered' : 'badge-insufficient'}" style="font-size: 0.68rem;">
+              ${item.status === 'answered' ? 'Answered' : 'Insufficient'}
+            </span>
+          </div>
+          <div class="text-light small fw-medium text-truncate mb-1">${escapeHtml(item.question)}</div>
+          <small class="text-dim d-block" style="font-size: 0.72rem;">${new Date(item.created_at).toLocaleDateString()} ${new Date(item.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</small>
+        `;
+        itemEl.onclick = () => {
+          renderAssistantResponse({
+            selected_machine: { machine_id: item.machine_id },
+            question: item.question,
+            answer: item.answer,
+            status: item.status,
+            citations: item.citations || [],
+            supporting_passages: item.supporting_passages || []
+          });
+        };
+        listEl.appendChild(itemEl);
+      });
+    } catch (e) {
+      listEl.innerHTML = '<div class="text-center text-danger py-3 small">Could not load history.</div>';
+    }
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function formatAnswerText(text) {
+    if (!text) return '';
+    return escapeHtml(text).replace(/\n/g, '<br>');
+  }
+</script>
+{% endblock %}

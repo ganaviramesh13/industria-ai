@@ -1,0 +1,268 @@
+/* INDUSTRIA AI - Premium Industrial SaaS Theme */
+:root {
+  --bg-darkest: #070B19;
+  --bg-dark: #0D1527;
+  --bg-card: #141E33;
+  --bg-card-hover: #1A2845;
+  --bg-input: #0B1224;
+  --border-color: #21304D;
+  --border-light: #2D4268;
+  --text-main: #F1F5F9;
+  --text-muted: #94A3B8;
+  --text-dim: #64748B;
+  --accent-cyan: #38BDF8;
+  --accent-blue: #2563EB;
+  --accent-teal: #14B8A6;
+  --accent-emerald: #10B981;
+  --accent-amber: #F59E0B;
+  --accent-rose: #F43F5E;
+}
+
+body {
+  background-color: var(--bg-darkest);
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Navbar */
+.navbar-industria {
+  background-color: var(--bg-dark);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.75rem 1.5rem;
+}
+
+.brand-badge {
+  background: linear-gradient(135deg, #0284C7, #38BDF8);
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.brand-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #F8FAFC;
+}
+
+/* Cards */
+.card-industria {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.card-industria:hover {
+  border-color: var(--border-light);
+}
+
+.card-header-industria {
+  background-color: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 1.25rem;
+  font-weight: 600;
+}
+
+/* Status Badges */
+.badge-answered {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-weight: 500;
+}
+
+.badge-insufficient {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #FBBF24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  font-weight: 500;
+}
+
+.badge-indexed {
+  background-color: rgba(56, 189, 248, 0.15);
+  color: #38BDF8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.badge-role-admin {
+  background-color: rgba(244, 63, 94, 0.2);
+  color: #FB7185;
+  border: 1px solid rgba(244, 63, 94, 0.4);
+}
+
+.badge-role-engineer {
+  background-color: rgba(14, 165, 233, 0.2);
+  color: #38BDF8;
+  border: 1px solid rgba(14, 165, 233, 0.4);
+}
+
+.badge-role-supervisor {
+  background-color: rgba(168, 85, 247, 0.2);
+  color: #C084FC;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+}
+
+/* Buttons */
+.btn-primary-industria {
+  background: linear-gradient(135deg, #0284C7, #0369A1);
+  border: 1px solid #38BDF8;
+  color: #FFFFFF;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn-primary-industria:hover {
+  background: linear-gradient(135deg, #0369A1, #075985);
+  color: #FFFFFF;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+}
+
+.btn-outline-industria {
+  background-color: transparent;
+  border: 1px solid var(--border-light);
+  color: var(--text-main);
+  transition: all 0.2s ease;
+}
+
+.btn-outline-industria:hover, .btn-outline-industria.active {
+  background-color: var(--bg-card-hover);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+/* Inputs */
+.form-control-industria, .form-select-industria {
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  border-radius: 6px;
+  padding: 0.65rem 0.9rem;
+}
+
+.form-control-industria:focus, .form-select-industria:focus {
+  background-color: var(--bg-input);
+  border-color: var(--accent-cyan);
+  color: var(--text-main);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+}
+
+/* Machine Selector */
+.machine-card {
+  cursor: pointer;
+  border: 2px solid var(--border-color);
+  background-color: var(--bg-card);
+  transition: all 0.2s ease;
+}
+
+.machine-card:hover {
+  border-color: var(--border-light);
+  transform: translateY(-2px);
+}
+
+.machine-card.selected {
+  border-color: var(--accent-cyan);
+  background-color: rgba(56, 189, 248, 0.08);
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.15);
+}
+
+/* Assistant Chat */
+.chat-container {
+  height: calc(100vh - 290px);
+  min-height: 480px;
+  overflow-y: auto;
+  padding: 1rem;
+  background-color: var(--bg-dark);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.chat-bubble-user {
+  background-color: #1E293B;
+  border: 1px solid #334155;
+  border-radius: 12px 12px 2px 12px;
+  padding: 0.85rem 1.15rem;
+  max-width: 80%;
+  margin-left: auto;
+  margin-bottom: 1.25rem;
+}
+
+.chat-bubble-assistant {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px 12px 12px 2px;
+  padding: 1.15rem 1.35rem;
+  max-width: 90%;
+  margin-right: auto;
+  margin-bottom: 1.25rem;
+}
+
+/* Citations */
+.citation-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: rgba(2, 132, 199, 0.18);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #7DD3FC;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 6px;
+  margin-top: 6px;
+}
+
+.citation-pill:hover {
+  background-color: rgba(2, 132, 199, 0.35);
+  border-color: #38BDF8;
+  color: #FFFFFF;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
+}
+
+/* Tables */
+.table-industria {
+  color: var(--text-main);
+  border-color: var(--border-color);
+}
+
+.table-industria th {
+  background-color: var(--bg-dark);
+  border-color: var(--border-color);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table-industria td {
+  background-color: var(--bg-card);
+  border-color: var(--border-color);
+  vertical-align: middle;
+}
+
+.table-industria tr:hover td {
+  background-color: var(--bg-card-hover);
+}
+
+/* Disclaimer Footer */
+.safety-disclaimer {
+  background-color: rgba(15, 23, 42, 0.7);
+  border-top: 1px solid var(--border-color);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  padding: 0.75rem 1rem;
+  text-align: center;
+}
+

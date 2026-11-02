@@ -1,0 +1,25 @@
+# Environment variables
+.env
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# Database
+# db.sqlite3
+
+# Static / Media runtime uploads
+staticfiles/
+media/manuals/*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+

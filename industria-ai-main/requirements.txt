@@ -1,0 +1,30 @@
+# INDUSTRIA AI — Python Dependencies
+# Generated from venv — install with: pip install -r requirements.txt
+
+# Core Django Framework
+Django>=4.2,<5.0
+djangorestframework>=3.14
+django-cors-headers>=4.0
+
+# Database
+psycopg[binary]>=3.1
+
+# Environment Variables
+python-dotenv>=1.0
+
+# PDF Processing
+PyMuPDF>=1.23
+
+# Vector Database (RAG)
+chromadb>=0.5
+
+# Embeddings
+sentence-transformers>=2.2
+torch>=2.0
+
+# LLM Providers
+openai>=1.0          # xAI Grok (OpenAI-compatible) + OpenAI fallback
+groq>=0.4            # Groq Inc. fallback
+
+# HTTP Client
+httpx>=0.25
