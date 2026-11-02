@@ -28,7 +28,4 @@ groq>=0.4            # Groq Inc. fallback
 
 # HTTP Client
 httpx>=0.25
-
-
-
 gunicorn
